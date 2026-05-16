@@ -149,10 +149,6 @@ a:hover { text-decoration: underline; }
   }
   .inputs { position: static !important; max-height: none; overflow: visible; }
 }
-@media (max-width: 720px) {
-  .verdict-row { position: sticky; top: 8px; z-index: 10; }
-  .verdict { box-shadow: 0 8px 30px rgba(0,0,0,.55); }
-}
 
 .card {
   background: var(--panel);
@@ -314,6 +310,23 @@ input[type=range]::-moz-range-thumb {
 .badge.bad   { background: rgba(255, 92, 92, .12);  color: #ff8c8c; border: 1px solid rgba(255,92,92,.3); }
 .badge.warn  { background: rgba(245, 177, 76, .12); color: #f6c374; border: 1px solid rgba(245,177,76,.3); }
 .badge.good  { background: rgba(46, 204, 113, .12); color: #5fe39a; border: 1px solid rgba(46,204,113,.3); }
+
+@media (max-width: 640px) {
+  .verdict { padding: 16px 18px; }
+  .verdict-headline {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .big { font-size: clamp(28px, 9vw, 40px); white-space: nowrap; }
+  .badge {
+    min-width: 0;
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  .verdict-sub { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .med { font-size: 18px; }
+}
 
 .verdict-line {
   margin-top: 16px;
