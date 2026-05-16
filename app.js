@@ -15,19 +15,29 @@ const fmt$ = (n) => {
 const fmtN = (n, d=0) => isFinite(n) ? n.toLocaleString("en-US",{maximumFractionDigits:d}) : "—";
 const fmtPct = (n, d=0) => isFinite(n) ? `${(n*100).toFixed(d)}%` : "—";
 
-/* ──────────  Read inputs from DOM into a plain state object ────────── */
+/* ──────────  Read inputs from DOM into a plain state object ──────────
+   The number input (input.num) is the source of truth — it can hold
+   values outside the slider's clamp range when the user types a
+   precise figure that doesn't fit on the scrubber. */
 function readState() {
   const s = {};
   document.querySelectorAll(".row[data-key]").forEach(row => {
     const key = row.dataset.key;
-    const inp = row.querySelector('input[type=range]');
-    if (!inp) return;
-    let v = parseFloat(inp.value);
-    if (inp.dataset.log === "true") v = Math.pow(10, v);
-    s[key] = v;
+    const num = row.querySelector("input.num");
+    if (num && num.value !== "") {
+      const v = parseFloat(num.value);
+      if (isFinite(v)) { s[key] = v; return; }
+    }
+    /* Fallback: read from the slider (used before initNumberInputs runs) */
+    const inp = row.querySelector("input[type=range]");
+    if (inp) {
+      let v = parseFloat(inp.value);
+      if (inp.dataset.log === "true") v = Math.pow(10, v);
+      s[key] = v;
+    }
   });
-  s.country  = document.getElementById("country").value;
-  s.seTax    = document.getElementById("seTax").checked;
+  s.country = document.getElementById("country").value;
+  s.seTax   = document.getElementById("seTax").checked;
   return s;
 }
 
@@ -470,25 +480,89 @@ function paintTrajectory(r) {
   }
 }
 
-/* ──────────  Display value formatter for sliders ────────── */
-function displayValue(key, raw, inp) {
-  const val = inp.dataset.log === "true" ? Math.pow(10, raw) : raw;
-  switch (key) {
-    case "videosPerMonth":  return val < 1 ? `${(val*4).toFixed(1)} / week` : `${fmtN(val,1)}`;
-    case "hoursPerVideo":   return `${fmtN(val,1)} h`;
-    case "overheadHours":   return `${fmtN(val)} h`;
-    case "viewsPerVideo":   return fmtN(val);
-    case "watchedFraction": return `${fmtN(val)}%`;
-    case "rpm":             return `$${val.toFixed(2)}`;
-    case "sponsorRate":     return `$${fmtN(val)}`;
-    case "sponsorShare":    return `${fmtN(val)}%`;
-    case "memberRevenue":   return fmt$(val);
-    case "fixedCosts":      return fmt$(val);
-    case "varCosts":        return fmt$(val);
-    case "gearCost":        return fmt$(val);
-    case "taxRate":         return `${fmtN(val)}%`;
-    default:                return fmtN(val);
-  }
+/* ──────────  Per-input units & formatting ────────── */
+const UNITS = {
+  videosPerMonth:  { suffix: "/ mo",  dp: 2 },
+  hoursPerVideo:   { suffix: "h",     dp: 2 },
+  overheadHours:   { suffix: "h",     dp: 0 },
+  viewsPerVideo:   { suffix: "views", dp: 0 },
+  watchedFraction: { suffix: "%",     dp: 0 },
+  rpm:             { prefix: "$",     dp: 2 },
+  sponsorRate:     { prefix: "$",     dp: 0 },
+  sponsorShare:    { suffix: "%",     dp: 0 },
+  memberRevenue:   { prefix: "$",     dp: 0 },
+  fixedCosts:      { prefix: "$",     dp: 0 },
+  varCosts:        { prefix: "$",     dp: 0 },
+  gearCost:        { prefix: "$",     dp: 0 },
+  taxRate:         { suffix: "%",     dp: 0 },
+};
+
+function fmtNumValue(v, dp = 2) {
+  if (!isFinite(v)) return "0";
+  // Trim trailing zeros (1.50 -> 1.5, 2.00 -> 2).
+  return (+v.toFixed(dp)).toString();
+}
+function fmtBig(n) {
+  if (!isFinite(n)) return "—";
+  const a = Math.abs(n);
+  if (a >= 1e12) return (n/1e12).toFixed(1).replace(/\.0$/,"") + "T";
+  if (a >= 1e9)  return (n/1e9 ).toFixed(1).replace(/\.0$/,"") + "B";
+  if (a >= 1e6)  return (n/1e6 ).toFixed(1).replace(/\.0$/,"") + "M";
+  if (a >= 1e3)  return (n/1e3 ).toFixed(1).replace(/\.0$/,"") + "K";
+  return Math.round(n).toString();
+}
+
+/* Replace each row's <output> with a number-input + prefix/suffix */
+function initNumberInputs() {
+  document.querySelectorAll(".row[data-key]").forEach(row => {
+    const key = row.dataset.key;
+    const out = row.querySelector("output");
+    const u   = UNITS[key];
+    if (!out || !u) return;
+    const wrap = document.createElement("span");
+    wrap.className = "numwrap";
+    const parts = [];
+    if (u.prefix) parts.push(`<span class="prefix">${u.prefix}</span>`);
+    parts.push(`<input type="number" class="num" step="any" inputmode="decimal" />`);
+    if (u.suffix) parts.push(`<span class="suffix">${u.suffix}</span>`);
+    wrap.innerHTML = parts.join("");
+    out.replaceWith(wrap);
+
+    const num = wrap.querySelector("input.num");
+
+    /* number → slider (clamped) + model */
+    num.addEventListener("input", () => {
+      const v = parseFloat(num.value);
+      if (!isFinite(v)) return;
+      syncSliderFromNumber(row, v);
+      updateAll(/*skipNumberInputs*/ true);
+    });
+    /* tidy formatting on blur */
+    num.addEventListener("blur", () => {
+      const v = parseFloat(num.value);
+      if (!isFinite(v)) return;
+      num.value = fmtNumValue(v, u.dp);
+    });
+  });
+}
+
+function syncSliderFromNumber(row, value) {
+  const slider = row.querySelector("input[type=range]");
+  if (!slider) return;
+  const min = parseFloat(slider.min), max = parseFloat(slider.max);
+  let sliderVal = slider.dataset.log === "true"
+    ? Math.log10(Math.max(1, value))
+    : value;
+  slider.value = Math.min(max, Math.max(min, sliderVal));
+}
+
+function syncNumberFromSlider(row, key) {
+  const slider = row.querySelector("input[type=range]");
+  const num    = row.querySelector("input.num");
+  if (!slider || !num) return;
+  let v = parseFloat(slider.value);
+  if (slider.dataset.log === "true") v = Math.pow(10, v);
+  num.value = fmtNumValue(v, (UNITS[key] || {}).dp);
 }
 
 /* ──────────  Wire up ────────── */
@@ -502,12 +576,6 @@ function refreshSliderTracks() {
 
 function updateAll() {
   refreshSliderTracks();
-  document.querySelectorAll(".row[data-key]").forEach(row => {
-    const key = row.dataset.key;
-    const inp = row.querySelector('input[type=range]');
-    const out = row.querySelector("output");
-    if (inp && out) out.textContent = displayValue(key, parseFloat(inp.value), inp);
-  });
   const s = readState();
   const r = model(s);
   paintVerdict(r);
@@ -557,33 +625,83 @@ function applyState(st) {
     } else if (k === "seTax") {
       document.getElementById("seTax").checked = !!v;
     } else if (typeof v === "number" && Number.isFinite(v)) {
-      setRange(k, v);
+      setValue(k, v);
     }
   });
 }
 
-function setRange(key, value) {
+/* Set both the slider (clamped) and the number input to a real value. */
+function setValue(key, value) {
   const row = document.querySelector(`.row[data-key="${key}"]`);
   if (!row) return;
-  const inp = row.querySelector('input[type=range]');
-  if (!inp) return;
-  if (inp.dataset.log === "true") {
-    inp.value = Math.log10(value);
-  } else {
-    inp.value = value;
-  }
+  const num = row.querySelector("input.num");
+  if (num) num.value = fmtNumValue(value, (UNITS[key] || {}).dp);
+  syncSliderFromNumber(row, value);
 }
 
 function applyPreset(name) {
   const p = PRESETS[name];
   if (!p) return;
   Object.entries(p).forEach(([k,v]) => {
-    if (typeof v === "number") setRange(k, v);
+    if (typeof v === "number") setValue(k, v);
   });
   document.querySelectorAll(".preset-buttons button").forEach(b => {
     b.classList.toggle("active", b.dataset.preset === name);
   });
+  /* Clear any currently selected channel — the user has overridden it */
+  const cs = document.getElementById("channelSelect");
+  if (cs) cs.value = "";
+  document.getElementById("channelInfo")?.classList.add("hidden");
   updateAll();
+}
+
+/* ──────────  Real-channel picker ────────── */
+function applyChannel(id) {
+  const c = (typeof CHANNELS !== "undefined" ? CHANNELS : []).find(x => x.id === id);
+  if (!c) return;
+  Object.entries(c.state).forEach(([k, v]) => setValue(k, v));
+  /* Channel state doesn't carry country/tax — leave the user's selection alone */
+  document.querySelectorAll(".preset-buttons button").forEach(b => b.classList.remove("active"));
+  const info = document.getElementById("channelInfo");
+  if (info) {
+    const age = new Date().getFullYear() - c.since;
+    info.innerHTML = `
+      <div class="ci-head">
+        <strong>${c.name}</strong> <span class="muted small">· ${c.niche}</span>
+      </div>
+      <div class="ci-stats">
+        <div><div class="muted small">Subscribers</div><strong>${fmtBig(c.subs)}</strong></div>
+        <div><div class="muted small">Lifetime views</div><strong>${fmtBig(c.totalViews)}</strong></div>
+        <div><div class="muted small">Videos uploaded</div><strong>${fmtBig(c.videos)}</strong></div>
+        <div><div class="muted small">Channel age</div><strong>${age} yrs</strong></div>
+      </div>
+      ${c.note ? `<div class="ci-note">${c.note}</div>` : ""}
+      <div class="ci-disclaimer">
+        Public stats only. Earnings on the right are an estimate from views × niche-typical RPM —
+        not from YouTube's books. Real revenue is private to the channel.
+      </div>`;
+    info.classList.remove("hidden");
+  }
+  updateAll();
+}
+
+function initChannelPicker() {
+  const sel = document.getElementById("channelSelect");
+  if (!sel || typeof CHANNELS === "undefined") return;
+  const groups = {};
+  CHANNELS.forEach(c => (groups[c.group] = groups[c.group] || []).push(c));
+  for (const [g, items] of Object.entries(groups)) {
+    const og = document.createElement("optgroup");
+    og.label = g;
+    items.forEach(c => {
+      const o = document.createElement("option");
+      o.value = c.id;
+      o.textContent = c.name;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  }
+  sel.addEventListener("change", () => { if (sel.value) applyChannel(sel.value); });
 }
 
 function initCountrySelect() {
@@ -610,16 +728,24 @@ function initCountrySelect() {
   sel.addEventListener("change", () => {
     // Auto-set tax to country default the first time only
     const c = COUNTRIES.find(x => x.code === sel.value);
-    if (c) setRange("taxRate", c.taxDefault);
+    if (c) setValue("taxRate", c.taxDefault);
     updateAll();
   });
 }
 
 function init() {
+  initNumberInputs();
   initCountrySelect();
+  initChannelPicker();
   document.getElementById("seTax").addEventListener("change", updateAll);
-  document.querySelectorAll("input[type=range]").forEach(inp => {
-    inp.addEventListener("input", updateAll);
+  /* Slider drag → mirror value into the matching number input + update */
+  document.querySelectorAll(".row[data-key] input[type=range]").forEach(slider => {
+    const row = slider.closest(".row[data-key]");
+    const key = row.dataset.key;
+    slider.addEventListener("input", () => {
+      syncNumberFromSlider(row, key);
+      updateAll();
+    });
   });
   document.querySelectorAll(".preset-buttons button").forEach(b => {
     b.addEventListener("click", () => applyPreset(b.dataset.preset));
