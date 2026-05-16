@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The YouTube Economics Calculator — is it really profitable?</title>
+<meta name="description" content="An honest, interactive economic model of life as a YouTube creator. Move the sliders, find the tipping point, and see how YouTube earnings compare to minimum wage." />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="style.css" />
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📉</text></svg>" />
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">An interactive model · updated 2026</div>
+    <h1>Is being a YouTuber actually profitable?</h1>
+    <p class="lede">
+      Most people see the breakout stars and assume the platform is a goldmine.
+      The numbers tell a different story. Move the sliders to model your own
+      channel — production hours, views, RPM, sponsorships, equipment, taxes —
+      and watch the <strong>real hourly wage</strong> appear next to the local
+      minimum wage. The tipping point is usually further away than people think.
+    </p>
+    <div class="hero-cta">
+      <a href="#calc" class="btn primary">Open the calculator ↓</a>
+      <a href="#methodology" class="btn ghost">How the maths works</a>
+    </div>
+  </div>
+</header>
+
+<main id="calc" class="calc wrap">
+
+  <section class="presets" aria-label="Preset scenarios">
+    <div class="preset-label">Quick scenarios:</div>
+    <div class="preset-buttons" id="presetButtons">
+      <button type="button" data-preset="hobbyist">Weekend hobbyist</button>
+      <button type="button" data-preset="parttime">Part-time vlogger</button>
+      <button type="button" data-preset="midtier">Mid-tier gamer</button>
+      <button type="button" data-preset="finance">Finance niche</button>
+      <button type="button" data-preset="fulltime">Full-time grinder</button>
+      <button type="button" data-preset="mrbeast">"MrBeast-style"</button>
+    </div>
+  </section>
+
+  <div class="layout">
+
+    <!-- ─────────────  INPUTS  ───────────── -->
+    <section class="inputs card" aria-label="Inputs">
+      <h2>Your channel</h2>
+
+      <div class="group">
+        <h3>Output &amp; effort</h3>
+
+        <label class="row" data-key="videosPerMonth">
+          <span class="lbl">Videos published per month</span>
+          <input type="range" min="0.25" max="30" step="0.25" value="4" />
+          <output></output>
+        </label>
+
+        <label class="row" data-key="hoursPerVideo">
+          <span class="lbl">Hours to make one video <small>(script + record + edit + thumbnail)</small></span>
+          <input type="range" min="0.5" max="120" step="0.5" value="20" />
+          <output></output>
+        </label>
+
+        <label class="row" data-key="overheadHours">
+          <span class="lbl">Extra hours / month <small>(comments, analytics, admin, learning)</small></span>
+          <input type="range" min="0" max="80" step="1" value="10" />
+          <output></output>
+        </label>
+      </div>
+
+      <div class="group">
+        <h3>Audience &amp; reach</h3>
+
+        <label class="row" data-key="viewsPerVideo">
+          <span class="lbl">Average lifetime views per video</span>
+          <input type="range" min="2" max="8" step="0.01" value="4" data-log="true" />
+          <output></output>
+        </label>
+
+        <label class="row" data-key="watchedFraction">
+          <span class="lbl">Share of views that are monetised <small>(non-skipping, ad-eligible)</small></span>
+          <input type="range" min="0" max="100" step="1" value="55" />
+          <output></output>
+        </label>
+      </div>
+
+      <div class="group">
+        <h3>Money per view</h3>
+
+        <label class="row" data-key="rpm">
+          <span class="lbl">RPM <small>(creator-side revenue per 1,000 monetised views, USD)</small></span>
+          <input type="range" min="0.25" max="50" step="0.25" value="4" />
+          <output></output>
+        </label>
+
+        <label class="row" data-key="sponsorRate">
+          <span class="lbl">Sponsor CPM <small>($ per 1,000 views, on sponsored videos)</small></span>
+          <input type="range" min="0" max="80" step="1" value="25" />
+          <output></output>
+        </label>
+
+        <label class="row" data-key="sponsorShare">
+          <span class="lbl">% of videos with a sponsor</span>
+          <input type="range" min="0" max="100" step="1" value="20" />
+          <output></output>
+        </label>
+
+        <label class="row" data-key="memberRevenue">
+          <span class="lbl">Memberships / Super Thanks / merch <small>($ / month, fixed)</small></span>
+          <input type="range" min="0" max="20000" step="50" value="0" />
+          <output></output>
+        </label>
+      </div>
+
+      <div class="group">
+        <h3>Costs</h3>
+
+        <label class="row" data-key="fixedCosts">
+          <span class="lbl">Monthly fixed costs <small>(software, hosting, music licences, accountant)</small></span>
+          <input type="range" min="0" max="3000" step="10" value="80" />
+          <output></output>
+        </label>
+
+        <label class="row" data-key="varCosts">
+          <span class="lbl">Cost per video <small>(travel, props, set, freelance editor, location)</small></span>
+          <input type="range" min="0" max="100000" step="50" value="50" />
+          <output></output>
+        </label>
+
+        <label class="row" data-key="gearCost">
+          <span class="lbl">Camera / lights / PC investment <small>(amortised over 3 yrs)</small></span>
+          <input type="range" min="0" max="30000" step="100" value="3000" />
+          <output></output>
+        </label>
+      </div>
+
+      <div class="group">
+        <h3>Tax &amp; benchmark</h3>
+
+        <label class="row select">
+          <span class="lbl">Where are you?</span>
+          <select id="country"></select>
+        </label>
+
+        <label class="row" data-key="taxRate">
+          <span class="lbl">Effective income-tax rate <small>(income tax + NI / FICA / SE — combined)</small></span>
+          <input type="range" min="0" max="60" step="1" value="28" />
+          <output></output>
+        </label>
+
+        <label class="row check">
+          <span class="lbl">Include self-employment overhead <small>(US: SE tax · UK: Class 4 NI)</small></span>
+          <input type="checkbox" id="seTax" checked />
+        </label>
+      </div>
+    </section>
+
+    <!-- ─────────────  OUTPUTS  ───────────── -->
+    <section class="outputs">
+
+      <div class="verdict card" id="verdict">
+        <div class="verdict-headline">
+          <div>
+            <div class="muted">Your effective hourly rate, after tax</div>
+            <div class="big" id="hourly">$—</div>
+            <div class="muted" id="hourlyVs"></div>
+          </div>
+          <div class="badge" id="badge">—</div>
+        </div>
+        <div class="verdict-sub">
+          <div>
+            <div class="muted">After-tax take-home</div>
+            <div class="med" id="takeHome">$—</div>
+            <div class="muted small">per month</div>
+          </div>
+          <div>
+            <div class="muted">Total time investment</div>
+            <div class="med" id="hours">—</div>
+            <div class="muted small">hours / month</div>
+          </div>
+          <div>
+            <div class="muted">Pre-tax profit margin</div>
+            <div class="med" id="margin">—</div>
+            <div class="muted small">revenue → profit</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Where the money goes</h3>
+        <div class="chartwrap"><canvas id="breakdownChart"></canvas></div>
+        <table class="breakdown" id="breakdownTable"></table>
+      </div>
+
+      <div class="card">
+        <h3>Hourly wage vs minimum wage</h3>
+        <p class="muted small">Pre-tax and post-tax hourly rate compared to the local statutory minimum, the local median full-time wage, and a typical software-engineer salary.</p>
+        <div class="chartwrap"><canvas id="wageChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h3>The tipping point</h3>
+        <p class="muted small">
+          Holding everything else fixed, this curve shows your after-tax hourly
+          rate as <em>average views per video</em> varies. The dashed line is
+          your local minimum wage. Where the curve crosses it is the number of
+          views you need per video, every month, for YouTube to beat a
+          minimum-wage job.
+        </p>
+        <div class="chartwrap tall"><canvas id="tippingChart"></canvas></div>
+        <div id="tippingNote" class="note"></div>
+      </div>
+
+      <div class="card">
+        <h3>What moves the needle? <span class="muted small">(sensitivity)</span></h3>
+        <p class="muted small">
+          Each bar shows how your monthly after-tax income changes if that input
+          alone moves ±25%. Longer bar = the variable your channel is most
+          exposed to. This is where to spend your effort.
+        </p>
+        <div class="chartwrap tall"><canvas id="tornadoChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h3>Year-on-year, if nothing changes</h3>
+        <p class="muted small">
+          Most channels don't grow linearly — back catalogue earns a long tail.
+          This projects a steady-state catalogue with a modest tail multiplier.
+        </p>
+        <div class="chartwrap"><canvas id="trajectoryChart"></canvas></div>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- ─────────────  METHODOLOGY  ───────────── -->
+  <section id="methodology" class="card prose">
+    <h2>How the maths works</h2>
+
+    <h3>Revenue</h3>
+    <p>
+      YouTube reports earnings as <strong>RPM</strong> — the dollars a creator
+      keeps for every 1,000 video views, <em>after</em> YouTube's 45% cut and
+      after non-monetised views are excluded. Public RPM data and creator
+      disclosures put typical numbers around:
+    </p>
+    <ul>
+      <li>Finance / business / B2B: <strong>$15 – $50</strong></li>
+      <li>Tech reviews / SaaS: <strong>$5 – $15</strong></li>
+      <li>Education, how-to: <strong>$4 – $12</strong></li>
+      <li>Vlogs, lifestyle: <strong>$2 – $7</strong></li>
+      <li>Gaming: <strong>$1 – $4</strong></li>
+      <li>Music, kids, "made-for-kids": <strong>$0.50 – $2</strong></li>
+    </ul>
+    <p>
+      Sponsorships are modelled separately because they pay on a flat
+      sponsor-CPM that's usually 5–20× ad RPM, but only a fraction of videos
+      land a deal and small channels are mostly locked out below ~10k views.
+    </p>
+
+    <h3>Time</h3>
+    <p>
+      Production time covers scripting, recording, editing, thumbnails,
+      titles and uploads. The "overhead hours" slider captures everything
+      that isn't recording but eats your week: replying to comments,
+      reading analytics, learning new editing techniques, dealing with
+      copyright claims, taxes, contracts and pitches.
+    </p>
+
+    <h3>Hourly wage</h3>
+    <p>
+      Net monthly income ÷ total monthly hours. We then compare this to
+      the statutory minimum wage of the country you pick (see source notes
+      at the bottom of the page). For an honest comparison, the minimum-wage
+      number is <em>post-tax-equivalent</em> for a single full-time worker on
+      that wage, not the gross rate.
+    </p>
+
+    <h3>Tipping point</h3>
+    <p>
+      We sweep <em>average views per video</em> from 1,000 to 5,000,000 and
+      recompute the hourly rate at each point, holding every other slider
+      fixed. The crossover with minimum wage is the views-per-video your
+      channel needs to clear a minimum-wage equivalent. Most channels never
+      reach it.
+    </p>
+
+    <h3>What this model does NOT include</h3>
+    <ul>
+      <li><strong>Survivorship.</strong> The average successful channel did not start out average. Most channels never monetise at all — you need 1,000 subs and 4,000 watch hours just to <em>begin</em> earning.</li>
+      <li><strong>Burnout &amp; algorithm risk.</strong> A single algorithm change can cut RPM by half overnight.</li>
+      <li><strong>Mental-health cost</strong> of public-facing work, harassment, parasocial pressure.</li>
+      <li><strong>Optionality.</strong> Once you're big you can pivot to courses, books, speaking. This is real upside but only available to the top fraction of 1%.</li>
+    </ul>
+  </section>
+
+  <footer class="foot">
+    <p>
+      Built as an honest economic counterweight to "just start a YouTube channel"
+      advice. All maths runs in your browser — nothing is sent anywhere.
+      Source &amp; PRs welcome on
+      <a href="https://github.com/silkyrich/youtube-economics">GitHub</a>.
+    </p>
+    <p class="muted small">
+      Wage benchmarks: US federal minimum, state averages, UK National Living
+      Wage, EU averages from Eurostat, AU Fair Work, CA federal. Median wages
+      from OECD &amp; ONS. Numbers are 2025 / 2026 references and rounded.
+    </p>
+  </footer>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
