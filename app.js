@@ -132,6 +132,29 @@ function paintVerdict(r) {
   badge.textContent = label;
   badge.className   = "badge " + cls;
   document.getElementById("hourlyVs").textContent = sub;
+
+  /* Punchy one-liner that translates the numbers into plain English */
+  const line = document.getElementById("verdictLine");
+  if (line) {
+    const monthlyAtMinWage = r.minNet * r.totalHours;
+    const delta = r.afterTax - monthlyAtMinWage;
+    if (r.afterTax < 0) {
+      line.innerHTML = `For <strong>${fmtN(r.totalHours)} hours</strong> of work each month,
+        you're <strong>losing ${fmt$(-r.afterTax)}</strong> — a minimum-wage job for the same hours
+        in ${r.country.name} would pay <strong>${fmt$(monthlyAtMinWage)}</strong> post-tax,
+        an effective gap of <strong>${fmt$(monthlyAtMinWage - r.afterTax)}</strong> / month.`;
+    } else if (delta < 0) {
+      line.innerHTML = `For <strong>${fmtN(r.totalHours)} hours</strong> of work each month,
+        you're earning <strong>${fmt$(r.afterTax)}</strong> after tax.
+        The same hours at the local minimum wage would pay <strong>${fmt$(monthlyAtMinWage)}</strong> —
+        a shortfall of <strong>${fmt$(-delta)}</strong> / month.`;
+    } else {
+      line.innerHTML = `For <strong>${fmtN(r.totalHours)} hours</strong> of work each month,
+        you're earning <strong>${fmt$(r.afterTax)}</strong> after tax —
+        <strong>${fmt$(delta)}</strong> / month <em>above</em> what minimum-wage work would pay
+        for the same time, in ${r.country.name}.`;
+    }
+  }
 }
 
 /* ──────────  Breakdown chart + table ────────── */
@@ -493,6 +516,50 @@ function updateAll() {
   paintTipping(r);
   paintTornado(r);
   paintTrajectory(r);
+  writeHash(s);
+}
+
+/* ──────────  URL hash state ────────── */
+function writeHash(s) {
+  const order = ["videosPerMonth","hoursPerVideo","overheadHours","viewsPerVideo",
+                 "watchedFraction","rpm","sponsorRate","sponsorShare",
+                 "memberRevenue","fixedCosts","varCosts","gearCost","taxRate"];
+  const parts = order.map(k => {
+    const v = s[k];
+    return Number.isFinite(v) ? (+v.toFixed(4)) : "";
+  });
+  parts.push(s.country, s.seTax ? 1 : 0);
+  const next = "#s=" + parts.join(",");
+  if (location.hash !== next) {
+    try { history.replaceState(null, "", next); }
+    catch { /* some browsers refuse on file:// — ignore */ }
+  }
+}
+
+function readHash() {
+  const m = /^#s=(.+)$/.exec(location.hash);
+  if (!m) return null;
+  const p = m[1].split(",");
+  if (p.length < 15) return null;
+  return {
+    videosPerMonth: +p[0], hoursPerVideo: +p[1], overheadHours: +p[2],
+    viewsPerVideo: +p[3], watchedFraction: +p[4], rpm: +p[5],
+    sponsorRate: +p[6], sponsorShare: +p[7], memberRevenue: +p[8],
+    fixedCosts: +p[9], varCosts: +p[10], gearCost: +p[11], taxRate: +p[12],
+    country: p[13], seTax: p[14] === "1",
+  };
+}
+
+function applyState(st) {
+  Object.entries(st).forEach(([k, v]) => {
+    if (k === "country") {
+      document.getElementById("country").value = v;
+    } else if (k === "seTax") {
+      document.getElementById("seTax").checked = !!v;
+    } else if (typeof v === "number" && Number.isFinite(v)) {
+      setRange(k, v);
+    }
+  });
 }
 
 function setRange(key, value) {
@@ -558,8 +625,30 @@ function init() {
     b.addEventListener("click", () => applyPreset(b.dataset.preset));
   });
 
-  // Defaults that "feel honest" out of the box: a typical part-time creator.
-  applyPreset("parttime");
+  const shareBtn = document.getElementById("shareBtn");
+  if (shareBtn) {
+    shareBtn.addEventListener("click", async () => {
+      const url = location.href;
+      try { await navigator.clipboard.writeText(url); }
+      catch { /* fall back: select the URL in the bar */ window.prompt("Copy this link:", url); }
+      const txt = shareBtn.querySelector(".share-txt");
+      const orig = txt.textContent;
+      txt.textContent = "Copied!";
+      shareBtn.classList.add("copied");
+      setTimeout(() => { txt.textContent = orig; shareBtn.classList.remove("copied"); }, 1600);
+    });
+  }
+
+  // If a shared hash is present, restore it. Otherwise show a typical
+  // part-time creator — losing money — as the honest default.
+  const hashState = readHash();
+  if (hashState) {
+    applyPreset("parttime");        // seed everything to known values first
+    applyState(hashState);
+    updateAll();
+  } else {
+    applyPreset("parttime");
+  }
 }
 
 if (document.readyState === "loading") {

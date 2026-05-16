@@ -105,6 +105,24 @@ a:hover { text-decoration: underline; }
 .preset-buttons button:hover { border-color: #3a4358; }
 .preset-buttons button.active { background: rgba(91,140,255,.12); border-color: var(--accent-2); color: #cfd9ff; }
 
+.share-btn {
+  margin-left: auto;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.share-btn:hover  { border-color: #3a4358; }
+.share-btn.copied { background: rgba(46,204,113,.12); color: #5fe39a; border-color: rgba(46,204,113,.3); }
+.share-ico { font-size: 13px; }
+
 /* ─────────────────────────  layout  ───────────────────────── */
 .calc { padding-bottom: 80px; }
 .layout {
@@ -278,6 +296,18 @@ input[type=range]::-moz-range-thumb {
 .badge.bad   { background: rgba(255, 92, 92, .12);  color: #ff8c8c; border: 1px solid rgba(255,92,92,.3); }
 .badge.warn  { background: rgba(245, 177, 76, .12); color: #f6c374; border: 1px solid rgba(245,177,76,.3); }
 .badge.good  { background: rgba(46, 204, 113, .12); color: #5fe39a; border: 1px solid rgba(46,204,113,.3); }
+
+.verdict-line {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(91,140,255,.07);
+  border: 1px solid rgba(91,140,255,.18);
+  font-size: 14px;
+  color: #d5dae6;
+  line-height: 1.5;
+}
+.verdict-line strong { color: #fff; }
 
 /* ─────────────────────────  charts  ───────────────────────── */
 .chartwrap { position: relative; height: 240px; margin: 6px 0 8px; }

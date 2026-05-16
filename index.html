@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>The YouTube Economics Calculator — is it really profitable?</title>
 <meta name="description" content="An honest, interactive economic model of life as a YouTube creator. Move the sliders, find the tipping point, and see how YouTube earnings compare to minimum wage." />
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="stylesheet" href="style.css" />
 <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📉</text></svg>" />
 </head>
@@ -41,6 +40,9 @@
       <button type="button" data-preset="fulltime">Full-time grinder</button>
       <button type="button" data-preset="mrbeast">"MrBeast-style"</button>
     </div>
+    <button type="button" id="shareBtn" class="share-btn" title="Copy a link that loads your current sliders">
+      <span class="share-ico">🔗</span><span class="share-txt">Copy share link</span>
+    </button>
   </section>
 
   <div class="layout">
@@ -126,7 +128,7 @@
 
         <label class="row" data-key="varCosts">
           <span class="lbl">Cost per video <small>(travel, props, set, freelance editor, location)</small></span>
-          <input type="range" min="0" max="100000" step="50" value="50" />
+          <input type="range" min="0" max="100000" step="10" value="50" />
           <output></output>
         </label>
 
@@ -187,6 +189,7 @@
             <div class="muted small">revenue → profit</div>
           </div>
         </div>
+        <div class="verdict-line" id="verdictLine"></div>
       </div>
 
       <div class="card">
@@ -313,7 +316,7 @@
 
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script src="vendor/chart.umd.min.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>
