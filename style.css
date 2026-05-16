@@ -128,12 +128,30 @@ a:hover { text-decoration: underline; }
 .layout {
   display: grid;
   grid-template-columns: 420px 1fr;
+  grid-template-areas:
+    "inputs verdict"
+    "inputs outputs";
+  align-items: start;
   gap: 24px;
   margin-top: 16px;
 }
+.inputs      { grid-area: inputs; }
+.verdict-row { grid-area: verdict; }
+.outputs     { grid-area: outputs; }
+
 @media (max-width: 1024px) {
-  .layout { grid-template-columns: 1fr; }
-  .inputs { position: static !important; }
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "verdict"
+      "inputs"
+      "outputs";
+  }
+  .inputs { position: static !important; max-height: none; overflow: visible; }
+}
+@media (max-width: 720px) {
+  .verdict-row { position: sticky; top: 8px; z-index: 10; }
+  .verdict { box-shadow: 0 8px 30px rgba(0,0,0,.55); }
 }
 
 .card {
